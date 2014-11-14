@@ -11,13 +11,13 @@
 
 void OUTLET_on ( OutletTask *task )
 {
-	uint8_t message[SOPS_HEADER_LEN+1];
+	uint8_t packet[SOPS_HEADER_LEN];
 
 	// make packet
-	SOPS_make_packet(task->target, SOPS_OUTLET_ON, 0, message, sizeof(message));
+	SOPS_make_packet(task->target, SOPS_OUTLET_ON, 0, packet, sizeof(packet));
 
 	do {
-		RFM12B_tx ( message, sizeof(message) );
+		RFM12B_tx ( packet, sizeof(packet) );
 
 		// TODO: listen for ACK and re-send
 
@@ -25,4 +25,19 @@ void OUTLET_on ( OutletTask *task )
 	} while (1);
 }
 
+void OUTLET_off ( OutletTask *task )
+{
+	uint8_t packet[SOPS_HEADER_LEN];
+
+	// make packet
+	SOPS_make_packet(task->target, SOPS_OUTLET_OFF, 0, packet, sizeof(packet));
+
+	do {
+		RFM12B_tx ( packet, sizeof(packet) );
+
+		// TODO: listen for ACK and re-send
+
+		break;
+	} while (1);
+}
 
