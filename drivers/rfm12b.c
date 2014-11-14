@@ -181,6 +181,7 @@ void RFM12B_tx ( const uint8_t *data, size_t len )
 	__spi_start();
 
 	// enable transmit IRQ on MISO
+	// XXX: might want to switch this to interrupting on nIRQ
 	__rfm12b_tx_irq_enable();
 
 	// begin transmission
@@ -197,7 +198,7 @@ void RFM12B_tx ( const uint8_t *data, size_t len )
 	RFM12B_cmd(RF_POWER_RX);
 }
 
-__attribute__((interrupt(PORT_2_VECTOR))) void RFM12B_TX_ISR ( void )
+void RFM12B_TX_ISR ( void )
 {
 	// send current byte and increment head
 	__spi_send_byte(*rfm12b_tx_head);
