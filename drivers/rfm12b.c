@@ -17,7 +17,7 @@
 
 // transmit buffer
 static uint8_t rfm12b_tx_buffer[RFM12B_MAX_PACKET_LEN];
-static uint8_t *rfm12b_tx_payload = rfm12b_tx_buffer + RFM12B_PREAMBLE_LEN + RFM12B_HEADER_LEN;
+static uint8_t *rfm12b_tx_payload = rfm12b_tx_buffer + RFM12B_PREAMBLE_LEN;
 static uint8_t *rfm12b_tx_head = rfm12b_tx_buffer;
 static uint8_t *rfm12b_tx_tail = rfm12b_tx_buffer;
 
@@ -164,12 +164,14 @@ void RFM12B_init ( )
 
 void RFM12B_tx ( const uint8_t *data, size_t len )
 {
-	size_t index;
-
 	// prepare TX buffer, copying at most RFM12B_MAX_PACKET_SIZE bytes
 	len = (len > RFM12B_MAX_PAYLOAD) ? RFM12B_MAX_PAYLOAD : len;
 	memcpy(rfm12b_tx_payload, data, len);
+
+	// write the postamble
 	memset(rfm12b_tx_payload+len, 0xAA, RFM12B_POSTAMBLE_LEN);
+
+	// set head and tail
 	rfm12b_tx_head = rfm12b_tx_buffer;
 	rfm12b_tx_tail = rfm12b_tx_payload + len + RFM12B_POSTAMBLE_LEN;
 
