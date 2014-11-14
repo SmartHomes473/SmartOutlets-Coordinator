@@ -27,3 +27,13 @@
 *.i*86
 *.x86_64
 *.hex
+
+.ccsproject
+.config/
+.cproject
+.launches/
+.project
+.settings/
+.xdchelp
+
+Debug/
