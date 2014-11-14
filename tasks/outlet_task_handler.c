@@ -15,6 +15,7 @@
 
 // project headers
 #include "tasks/outlet_task_handler.h"
+#include "tasks/outlet_tasks.h"
 
 
 // handle instances defined by cfg
