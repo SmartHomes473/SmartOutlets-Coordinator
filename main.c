@@ -50,42 +50,6 @@
 /* Board Header file */
 #include "Board.h"
 
-/*
- *  ======== heartBeatFxn ========
- *  Toggle the Board_LED0. The Task_sleep is determined by arg0 which
- *  is configured for the heartBeat Task instance.
- */
-Void heartBeatFxn(UArg arg0, UArg arg1) {
-	while (1) {
-		Task_sleep((UInt) arg0);
-		GPIO_toggle(Board_LED0);
-	}
-}
-
-Void uartTaskFxn(UArg arg0, UArg arg1) {
-//	const unsigned char hello[] = "Hello World!\n";
-//	UART_Handle handle;
-//	UART_Params params;
-//
-//	// Configure UART
-//	UART_Params_init(&params);
-//	params.baudRate = 9600;
-//	params.writeDataMode = UART_DATA_BINARY;
-//	params.writeMode = UART_MODE_BLOCKING;
-//	params.readMode = UART_MODE_BLOCKING;
-//	params.readDataMode = UART_DATA_BINARY;
-//	params.readReturnMode = UART_RETURN_FULL;
-//	params.readEcho = UART_ECHO_OFF;
-//
-//	// Open UART connection
-//	handle = UART_open(Board_UART0, &params);
-//
-//	// Write message than sleep
-//	while (1) {
-//		UART_writePolling(handle, hello, sizeof(hello)-1);
-//		Task_sleep(1000);
-//	}
-}
 
 /*
  *  ======== main ========
