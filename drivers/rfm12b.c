@@ -170,7 +170,7 @@ void RFM12B_init ( )
 
 #define __rfm12b_irq_init() {\
 	P1DIR &= ~NIRQ;\
-	P1IES &= ~NIRQ;\
+	P1IES |= NIRQ;\
 	__rfm12b_irq_clear();\
 }
 
@@ -203,6 +203,9 @@ void RFM12B_tx ( const uint8_t *data, size_t len )
 
 	// start SPI transaction
 	__spi_start();
+
+	// begin transmission
+//	__spi_send_byte(0xB8);
 
 	__rfm12b_irq_enable();
 

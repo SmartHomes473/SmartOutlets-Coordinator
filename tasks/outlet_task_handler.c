@@ -30,16 +30,6 @@ void outlet_task_handler ( UArg arg0, UArg arg1 )
 		OutletTask *task;
 
 		/// ***** DEBUG
-		uint8_t foo[] = {0xD9, 0x9D, 0x00, 0x00, 0x00, 0x01, 0x00, 0x0F, 0x00, 0xEF, 'm', 'e', 'l', 'l', 'o'};
-		while(1) {
-			volatile int i;
-			__delay_cycles(10000);
-			RFM12B_tx(foo, sizeof(foo));
-		}
-		/// ***** END DEBUG
-
-
-		/// ***** DEBUG
 		OutletTask debug_task;
 		debug_task.action = OUTLET_on;
 		debug_task.target = 0x12;
