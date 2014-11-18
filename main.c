@@ -40,6 +40,7 @@
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Queue.h>
 
 
 /* TI-RTOS Header files */
@@ -50,6 +51,10 @@
 /* Board Header file */
 #include "Board.h"
 
+/* Project Header files */
+#include "sys/init.h"
+#include "tasks/outlet_tasks.h"
+#include "drivers/rfm12b.h"
 
 /*
  *  ======== main ========
@@ -60,10 +65,11 @@ int main(void) {
 
 	/* Call board init functions. */
 	Board_initGeneral();
-	Board_initGPIO();
 
-	/* Turn on user LED  */
-	GPIO_write(Board_LED0, Board_LED_ON);
+	Hwi_enable();
+
+	/* Call driver init function. */
+	RFM12B_init();
 
 	/* Start BIOS */
 	BIOS_start();

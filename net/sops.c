@@ -24,28 +24,33 @@ static uint8_t __next_message_id ( void );
 
 int SOPS_make_packet ( uint8_t dest, uint8_t opcode, uint8_t payload_len, uint8_t* buffer, size_t len )
 {
-	SOPS_header_t *header;
-	uint8_t cksum;
+	uint8_t msg_id, cksum;
 
 	if (len < SOPS_HEADER_LEN) {
 		return -1;
 	}
 
-	header = (SOPS_header_t*)buffer;
-
-	// populate header
-	header->proto_ident = SOPS_PROTO_IDENT;
-	header->dest = dest;
-	header->src = CONFIG_NET_ID;
-	header->msg_id = __next_message_id();
-	header->opcode = opcode;
-	header->payload_len = payload_len;
-
+	// generate message id
+	msg_id = __next_message_id();
 
 	// calculate checksum
-	cksum = SOPS_PROTO_IDENT + dest + CONFIG_NET_ID + opcode + payload_len + header->msg_id;
+	cksum = SOPS_PROTO_IDENT + dest + CONFIG_NET_ID + opcode + payload_len + msg_id;
 	cksum = (uint8_t)0xFF - cksum;
-	header->cksum = cksum;
+
+	// fill buffer
+	// TODO: try to use a SOPS header struct to map onto buffer
+	buffer[0] = (uint8_t)(SOPS_PROTO_IDENT>>8);
+	buffer[1] = (uint8_t)(SOPS_PROTO_IDENT&0XFF);
+	buffer[2] = dest;
+	buffer[3] = CONFIG_NET_ID;
+	buffer[4] = __next_message_id();
+	buffer[5] = opcode;
+	buffer[6] = payload_len;
+
+	cksum = buffer[0] + buffer[1] + buffer[2] + buffer[3] + buffer[4] + buffer[5] + buffer[6];
+	cksum = (uint8_t)0xFF - cksum;
+
+	buffer[7] = cksum;
 
 	return 0;
 }

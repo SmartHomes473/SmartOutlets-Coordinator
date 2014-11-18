@@ -21,13 +21,18 @@ static uint8_t *rfm12b_tx_payload = rfm12b_tx_buffer + RFM12B_PREAMBLE_LEN;
 static uint8_t *rfm12b_tx_head = rfm12b_tx_buffer;
 static uint8_t *rfm12b_tx_tail = rfm12b_tx_buffer;
 
+// receive buffer
+static uint8_t rfm12b_rx_buffer[RFM12B_MAX_PACKET_LEN];
+static uint8_t *rfm12b_rx_head = rfm12b_rx_buffer;
+static uint8_t *rfm12b_rx_tail = rfm12b_rx_buffer;
+
 extern Semaphore_Handle rfm12b_sem;
 
 // SPI pin definitions
 #define SPI_MISO	BIT7
 #define SPI_MOSI	BIT6
 #define SPI_SCLK	BIT2
-#define SPI_CS		BIT3
+#define SPI_CS		BIT5
 
 // nIRQ pin definition
 // XXX: this will likely change
@@ -36,8 +41,10 @@ extern Semaphore_Handle rfm12b_sem;
 // RFM12B configuration definitions
 #define RF_SYNC_BYTE1	0x2D
 #define RF_SYNC_BYTE0	0xD4
+#define RF_CONFIG_IDLE	0x80F8
 #define RF_CONFIG_RX	0x80F8
 #define RF_CONFIG_TX	0x80B8
+#define RF_POWER_IDLE	0x8201
 #define RF_POWER_RX		0x8281
 #define RF_POWER_TX		0x8221
 #define RF_CENTER_FREQ	0xA680
@@ -46,7 +53,7 @@ extern Semaphore_Handle rfm12b_sem;
 #define RF_DATA_FILTER	0xC2EC
 #define RF_FIFO_SYNC	0xCA83
 #define RF_FIFO_RESET	0xCA81
-#define RF_SYNC_MODE	0xCE00 | RF_SYNC_BYTE0
+#define RF_SYNC_MODE	0xCED4
 #define RF_AFC_CMD		0xC483
 #define RF_TX_CTL		0x9820
 #define RF_PLL_CFG		0xCC77
@@ -71,12 +78,12 @@ extern Semaphore_Handle rfm12b_sem;
 
 
 #define __spi_start() {\
-	__spi_flush();\
 	P1OUT &= ~SPI_CS;\
 }
 
 
 #define __spi_end() {\
+	__spi_flush();\
 	P1OUT |= SPI_CS;\
 }
 
@@ -86,8 +93,16 @@ extern Semaphore_Handle rfm12b_sem;
 	__spi_send_byte((uint8_t)(CMD>>8));\
 	__spi_send_byte((uint8_t)(CMD&0xFF));\
 	__spi_end();\
+	__delay_cycles(150);\
 }
 
+typedef enum {
+	RX,
+	TX,
+	IDLE
+} RFM12B_mode;
+
+static RFM12B_mode rfm12b_mode = IDLE;
 
 void RFM12B_init ( )
 {
@@ -108,7 +123,7 @@ void RFM12B_init ( )
 	UCB0CTLW0 = UCSWRST;
 
 	// configure as 3-wire 8-bit SPI master
-	UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB;
+	UCB0CTLW0 |= UCMST | UCSYNC | UCCKPH | UCMSB;
 
 	// use subsystem clock
 	UCB0CTLW0 |= UCSSEL__SMCLK;
@@ -135,32 +150,34 @@ void RFM12B_init ( )
 	RFM12B_cmd(RF_WAKEUP);
 	RFM12B_cmd(RF_DUTY_CYCLE);
 	RFM12B_cmd(RF_LOW_BATTERY);
+	RFM12B_cmd(RF_STATUS_READ);
 
 	// initialize buffer
-	memset(rfm12b_tx_buffer, 0xAA, sizeof(rfm12b_tx_buffer));
+	rfm12b_tx_buffer[0] = 0xAA;
+	rfm12b_tx_buffer[1] = 0xAA;
 	rfm12b_tx_buffer[2] = RF_SYNC_BYTE1;
 	rfm12b_tx_buffer[3] = RF_SYNC_BYTE0;
 }
 
-#define __rfm12b_tx_byte(BYTE) {\
-	__spi_flush();\
-	while (!(P1IN&NIRQ));\
-	__spi_send_byte(BYTE);\
+
+#define __rfm12b_irq_enable() {\
+	P1IE |= NIRQ;\
 }
 
-#define __rfm12b_tx_irq_enable() {\
-	P2IES &= ~SPI_MISO;\
-	P2IFG &= ~SPI_MISO;\
-	P2IE |= SPI_MISO;\
+#define __rfm12b_irq_clear() {\
+	P1IFG &= ~NIRQ;\
 }
 
-#define __rfm12b_tx_irq_disable() {\
-	P2IE &= ~SPI_MISO;\
+#define __rfm12b_irq_init() {\
+	P1DIR &= ~NIRQ;\
+	P1IES &= ~NIRQ;\
+	__rfm12b_irq_clear();\
 }
 
-#define __rfm12b_tx_irq_clear() {\
-	P2IFG &= ~SPI_MISO;\
+#define __rfm12b_irq_disable() {\
+	P1IE &= ~NIRQ;\
 }
+
 
 void RFM12B_tx ( const uint8_t *data, size_t len )
 {
@@ -175,19 +192,19 @@ void RFM12B_tx ( const uint8_t *data, size_t len )
 	rfm12b_tx_head = rfm12b_tx_buffer;
 	rfm12b_tx_tail = rfm12b_tx_payload + len + RFM12B_POSTAMBLE_LEN;
 
+	// initialize and clear pending interrupts on
+	__rfm12b_irq_init();
+
 	// enable TX mode and power on transmitter
+	RFM12B_cmd(RF_STATUS_READ);
 	RFM12B_cmd(RF_CONFIG_TX);
 	RFM12B_cmd(RF_POWER_TX);
+	rfm12b_mode = TX;
 
 	// start SPI transaction
 	__spi_start();
 
-	// enable transmit IRQ on MISO
-	// XXX: might want to switch this to interrupting on nIRQ
-	__rfm12b_tx_irq_enable();
-
-	// begin transmission
-	__spi_send_byte(0xB8);
+	__rfm12b_irq_enable();
 
 	// block until the transmission is finished
 	Semaphore_pend(rfm12b_sem, BIOS_WAIT_FOREVER);
@@ -195,27 +212,125 @@ void RFM12B_tx ( const uint8_t *data, size_t len )
 	// finish SPI transaction
 	__spi_end();
 
-	// switch to RX mode
+	// switch to idle mode
 	RFM12B_cmd(RF_CONFIG_RX);
 	RFM12B_cmd(RF_POWER_RX);
+	rfm12b_mode = IDLE;
 }
 
-void RFM12B_TX_ISR ( void )
+
+#define __rfm12b_rx_irq_enable() {\
+	P1IES &= ~NIRQ;\
+	P1IFG &= ~NIRQ;\
+	P1IE |= NIRQ;\
+}
+
+#define __rfm12b_rx_irq_disable() {\
+	P1IE &= ~NIRQ;\
+}
+
+#define __rfm12b_rx_irq_clear() {\
+	P1IFG &= ~NIRQ;\
+}
+
+
+size_t RFM12B_rx ( uint8_t *buffer, size_t len )
 {
-	// send current byte and increment head
-	__spi_send_byte(*rfm12b_tx_head);
-	++rfm12b_tx_head;
+	size_t rx_len;
 
-	// if we're at the end of the buffer
-	if (rfm12b_tx_head == rfm12b_tx_tail) {
-		// disable IRQ
-		__rfm12b_tx_irq_disable();
+	// prepare the buffer
+	rfm12b_rx_head = rfm12b_rx_buffer;
+	rfm12b_rx_tail = rfm12b_rx_buffer + len;
 
-		// resume thread
-		Semaphore_post(rfm12b_sem);
+	// enable RX mode and power on receiver
+	RFM12B_cmd(RF_CONFIG_RX);
+	RFM12B_cmd(RF_POWER_RX);
+
+	// enable receive IRQ on nIRQ
+	__rfm12b_rx_irq_enable();
+
+	// timeout after 10ms
+	// FIXME: this timeout value is bogus, we need to do
+	//        some actual testing to get a reasonable value.
+	Semaphore_pend(rfm12b_sem, 10);
+
+	// copy from internal buffer to user supplied buffer
+	rx_len = rfm12b_rx_tail - rfm12b_rx_buffer;
+	rx_len = rx_len > len ? len : rx_len;
+	memcpy(buffer, rfm12b_rx_buffer, rx_len);
+
+	// return to idle state
+	RFM12B_cmd(RF_CONFIG_IDLE);
+	RFM12B_cmd(RF_CONFIG_IDLE);
+
+	return rx_len;
+}
+
+
+void RFM12B_ISR ( void )
+{
+	if (!(P1IFG&NIRQ)) {
+		P1IFG = 0;
+		return;
 	}
 
-	// clear pending interrupt
-	__rfm12b_tx_irq_clear();
-}
+	// TODO: consolidate rfm12b_tx_buffer and rfm12b_rx_buffer????
 
+	// TX IRQ
+	switch (rfm12b_mode) {
+	case TX:
+
+		if (rfm12b_tx_head == rfm12b_tx_buffer) {
+			__spi_send_byte(0xB8);
+			__spi_flush();
+			__delay_cycles(150);
+		}
+
+		// send current byte and increment head
+		__spi_send_byte(*rfm12b_tx_head);
+		++rfm12b_tx_head;
+
+		// if we're at the end of the buffer
+		if (rfm12b_tx_head == rfm12b_tx_tail) {
+			// disable IRQ
+			__rfm12b_irq_disable();
+
+			// resume thread
+			Semaphore_post(rfm12b_sem);
+		}
+
+		// clear pending interrupt
+		__rfm12b_irq_clear();
+
+		break;
+
+	case RX:
+
+		// read bytes
+		RFM12B_cmd(RF_FIFO_READ);
+		*rfm12b_rx_tail = UCB0RXBUF;
+
+		++rfm12b_rx_tail;
+
+		if (rfm12b_rx_head == rfm12b_rx_tail) {
+			// disable IRQ
+			__rfm12b_rx_irq_disable();
+
+			// resume thread
+			Semaphore_post(rfm12b_sem);
+		}
+
+		// clear the interrupt if NIRQ is satisfied
+		if (P1IN&NIRQ) {
+			__rfm12b_rx_irq_clear();
+		}
+
+		break;
+
+	case IDLE:
+	default:
+		__rfm12b_irq_clear();
+	}
+
+	return;
+}
