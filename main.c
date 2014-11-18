@@ -66,8 +66,6 @@ int main(void) {
 	/* Call board init functions. */
 	Board_initGeneral();
 
-	Hwi_enable();
-
 	/* Call driver init function. */
 	RFM12B_init();
 
