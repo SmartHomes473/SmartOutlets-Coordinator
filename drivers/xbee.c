@@ -103,7 +103,7 @@ size_t XBEE_recv ( uint8_t *buffer, size_t len )
 	return read;
 }
 
-void XBEE_TX_RX_IRQ ( )
+void XBEE_TX_RX_ISR ( )
 {
 	if (XBEEIFG&UCTXIFG) {
 		// signal to TX thread to send a byte
