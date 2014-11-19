@@ -14,7 +14,7 @@ void OUTLET_on ( OutletTask *task )
 	uint8_t packet[SOPS_HEADER_LEN];
 
 	// make packet
-	SOPS_make_packet(task->target, 0x11, 0, packet, sizeof(packet));
+	SOPS_make_packet(task->target, SOPS_OUTLET_ON, 0, packet, sizeof(packet));
 
 	do {
 		RFM12B_tx ( packet, sizeof(packet) );
