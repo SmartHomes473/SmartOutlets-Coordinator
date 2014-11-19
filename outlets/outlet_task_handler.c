@@ -14,8 +14,8 @@
 #include <ti/sysbios/knl/Queue.h>
 
 // project headers
-#include "tasks/outlet_task_handler.h"
-#include "tasks/outlet_tasks.h"
+#include "outlets/outlet_task_handler.h"
+#include "outlets/outlet_tasks.h"
 
 
 // handle instances defined by cfg
@@ -28,10 +28,12 @@ void outlet_task_handler ( UArg arg0, UArg arg1 )
 {
 	while(1) {
 		OutletTask *task;
+		static int foo = 0;
 
 		/// ***** DEBUG
+		__delay_cycles(40000000);
 		OutletTask debug_task;
-		debug_task.action = OUTLET_on;
+		debug_task.action = foo++ % 2 ? OUTLET_on : OUTLET_off;
 		debug_task.target = 0x12;
 		Semaphore_pend(taskQueue_mutex, BIOS_WAIT_FOREVER);
 		Queue_enqueue(outletTask_queue, (Queue_Elem*)&debug_task);

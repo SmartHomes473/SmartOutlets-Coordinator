@@ -5,7 +5,7 @@
  *      Author: nick
  */
 
-#include "tasks/outlet_tasks.h"
+#include "outlets/outlet_tasks.h"
 #include "drivers/rfm12b.h"
 #include "net/sops.h"
 
