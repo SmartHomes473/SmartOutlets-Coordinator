@@ -26,8 +26,8 @@
 // XBEE pin definitions
 #define XBEE_SEL0	P2SEL0
 #define XBEE_SEL1	P2SEL1
-#define XBEE_RX 		BIT6
-#define XBEE_TX 		BIT5
+#define XBEE_RX 	BIT6
+#define XBEE_TX 	BIT5
 
 // XBEE serial register mappings onto USCI_A1
 #define XBEECTLW0	UCA1CTLW0
