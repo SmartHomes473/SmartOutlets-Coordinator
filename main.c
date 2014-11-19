@@ -55,6 +55,7 @@
 #include "sys/init.h"
 #include "outlets/outlet_tasks.h"
 #include "drivers/rfm12b.h"
+#include "drivers/xbee.h"
 
 /*
  *  ======== main ========
@@ -68,6 +69,7 @@ int main(void) {
 
 	/* Call driver init function. */
 	RFM12B_init();
+	XBEE_init();
 
 	/* Start BIOS */
 	BIOS_start();
