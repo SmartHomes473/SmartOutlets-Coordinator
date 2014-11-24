@@ -31,7 +31,7 @@ void outlet_task_handler ( UArg arg0, UArg arg1 )
 		static int foo = 0;
 
 		/// ***** DEBUG
-		__delay_cycles(40000000);
+		__delay_cycles(10000000);
 		OutletTask debug_task;
 		debug_task.action = foo++ % 2 ? OUTLET_on : OUTLET_off;
 		debug_task.target = 0x12;

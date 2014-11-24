@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 // transmit buffer
 static uint8_t rfm12b_tx_buffer[RFM12B_MAX_PACKET_LEN];
@@ -102,7 +103,7 @@ typedef enum {
 	IDLE
 } RFM12B_mode;
 
-static RFM12B_mode rfm12b_mode = IDLE;
+static volatile RFM12B_mode rfm12b_mode = IDLE;
 
 void RFM12B_init ( )
 {
@@ -178,7 +179,6 @@ void RFM12B_init ( )
 	P1IE &= ~NIRQ;\
 }
 
-
 void RFM12B_tx ( const uint8_t *data, size_t len )
 {
 	// prepare TX buffer, copying at most RFM12B_MAX_PACKET_SIZE bytes
@@ -222,40 +222,32 @@ void RFM12B_tx ( const uint8_t *data, size_t len )
 }
 
 
-#define __rfm12b_rx_irq_enable() {\
-	P1IES &= ~NIRQ;\
-	P1IFG &= ~NIRQ;\
-	P1IE |= NIRQ;\
-}
-
-#define __rfm12b_rx_irq_disable() {\
-	P1IE &= ~NIRQ;\
-}
-
-#define __rfm12b_rx_irq_clear() {\
-	P1IFG &= ~NIRQ;\
-}
-
-
 size_t RFM12B_rx ( uint8_t *buffer, size_t len )
 {
 	size_t rx_len;
+	bool timedout;
 
 	// prepare the buffer
 	rfm12b_rx_head = rfm12b_rx_buffer;
 	rfm12b_rx_tail = rfm12b_rx_buffer + len;
+	rfm12b_mode = RX;
 
 	// enable RX mode and power on receiver
 	RFM12B_cmd(RF_CONFIG_RX);
 	RFM12B_cmd(RF_POWER_RX);
 
 	// enable receive IRQ on nIRQ
-	__rfm12b_rx_irq_enable();
+	__rfm12b_irq_enable();
 
 	// timeout after 10ms
 	// FIXME: this timeout value is bogus, we need to do
 	//        some actual testing to get a reasonable value.
-	Semaphore_pend(rfm12b_sem, 10);
+	timedout = Semaphore_pend(rfm12b_sem, 10);
+
+	// disable IRQ
+	if (!timedout) {
+		__rfm12b_irq_disable();
+	}
 
 	// copy from internal buffer to user supplied buffer
 	rx_len = rfm12b_rx_tail - rfm12b_rx_buffer;
@@ -265,10 +257,10 @@ size_t RFM12B_rx ( uint8_t *buffer, size_t len )
 	// return to idle state
 	RFM12B_cmd(RF_CONFIG_IDLE);
 	RFM12B_cmd(RF_CONFIG_IDLE);
+	rfm12b_mode = IDLE;
 
 	return rx_len;
 }
-
 
 void RFM12B_ISR ( void )
 {
@@ -278,11 +270,7 @@ void RFM12B_ISR ( void )
 	}
 
 	// TODO: consolidate rfm12b_tx_buffer and rfm12b_rx_buffer????
-
-	// TX IRQ
-	switch (rfm12b_mode) {
-	case TX:
-
+	if (rfm12b_mode == TX) {
 		if (rfm12b_tx_head == rfm12b_tx_buffer) {
 			__spi_send_byte(0xB8);
 			__spi_flush();
@@ -304,20 +292,18 @@ void RFM12B_ISR ( void )
 
 		// clear pending interrupt
 		__rfm12b_irq_clear();
+	}
 
-		break;
-
-	case RX:
-
+	else if (rfm12b_mode == RX) {
 		// read bytes
 		RFM12B_cmd(RF_FIFO_READ);
-		*rfm12b_rx_tail = UCB0RXBUF;
+		*rfm12b_rx_head = UCB0RXBUF;
 
-		++rfm12b_rx_tail;
+		++rfm12b_rx_head;
 
 		if (rfm12b_rx_head == rfm12b_rx_tail) {
 			// disable IRQ
-			__rfm12b_rx_irq_disable();
+			__rfm12b_irq_disable();
 
 			// resume thread
 			Semaphore_post(rfm12b_sem);
@@ -325,13 +311,11 @@ void RFM12B_ISR ( void )
 
 		// clear the interrupt if NIRQ is satisfied
 		if (P1IN&NIRQ) {
-			__rfm12b_rx_irq_clear();
+			__rfm12b_irq_clear();
 		}
+	}
 
-		break;
-
-	case IDLE:
-	default:
+	else {
 		__rfm12b_irq_clear();
 	}
 

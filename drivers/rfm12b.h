@@ -18,5 +18,6 @@
 
 void RFM12B_init ( );
 void RFM12B_tx ( const uint8_t *data, size_t len );
+size_t RFM12B_rx ( uint8_t *data, size_t len );
 
 #endif /* RFM12B_H_ */

@@ -12,32 +12,40 @@
 void OUTLET_on ( OutletTask *task )
 {
 	uint8_t packet[SOPS_HEADER_LEN];
+	uint8_t ack[SOPS_ACK_LEN];
 
 	// make packet
 	SOPS_make_packet(task->target, SOPS_OUTLET_ON, 0, packet, sizeof(packet));
 
 	do {
-		RFM12B_tx ( packet, sizeof(packet) );
+		// turn on outlet
+		RFM12B_tx(packet, sizeof(packet));
 
-		// TODO: listen for ACK and re-send
-
-		break;
+		// re-transmit if we don't receive an ACK
+		RFM12B_rx(ack, sizeof(ack));
+		if (SOPS_decode(ack, sizeof(ack)) == ACK) {
+			break;
+		}
 	} while (1);
 }
 
 void OUTLET_off ( OutletTask *task )
 {
 	uint8_t packet[SOPS_HEADER_LEN];
+	uint8_t ack[SOPS_ACK_LEN];
 
 	// make packet
 	SOPS_make_packet(task->target, SOPS_OUTLET_OFF, 0, packet, sizeof(packet));
 
 	do {
+		// turn off outlet
 		RFM12B_tx ( packet, sizeof(packet) );
 
-		// TODO: listen for ACK and re-send
-
-		break;
+		// re-transmit if we don't receive an ACK
+		RFM12B_rx(ack, sizeof(ack));
+		if (SOPS_decode(ack, sizeof(ack)) == ACK) {
+			break;
+		}
 	} while (1);
 }
 

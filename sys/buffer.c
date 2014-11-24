@@ -16,7 +16,7 @@
 void Buffer32_init ( Buffer32_t *buffer )
 {
 	buffer->head = buffer->buffer;
-	buffer->tail = buffer->tail;
+	buffer->tail = buffer->buffer;
 	buffer->data_ready = false;
 }
 
@@ -26,10 +26,10 @@ size_t Buffer32_read ( Buffer32_t *buffer, uint8_t *dest, size_t len )
 
 	while ((buffer->head != buffer->tail) && read < len) {
 		// read from head into buffer
-		dest[read++] = *(buffer->head);
+		dest[read++] = *(buffer->head++);
 
 		// move head, wrapping if past end of buffer
-		buffer->head = (++buffer->head == buffer->buffer + sizeof(buffer->buffer)) ?
+		buffer->head = (buffer->head == (buffer->buffer + sizeof(buffer->buffer))) ?
 				buffer->buffer : buffer->head;
 	}
 

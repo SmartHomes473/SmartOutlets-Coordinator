@@ -55,6 +55,30 @@ int SOPS_make_packet ( uint8_t dest, uint8_t opcode, uint8_t payload_len, uint8_
 	return 0;
 }
 
+
+PacketType SOPS_decode ( uint8_t *packet, size_t len )
+{
+	if (len < SOPS_HEADER_LEN) {
+		return INVALID;
+	}
+
+	if (packet[0] != SOPS_PROTO_IDENT0 || packet[1] != SOPS_PROTO_IDENT1) {
+		return INVALID;
+	}
+
+	switch (packet[5]) {
+	case SOPS_OUTLET_ACK:
+		return ACK;
+
+	case SOPS_OUTLET_RES_POWER:
+		return POWER;
+
+	default:
+		return INVALID;
+	}
+}
+
+
 static uint8_t __next_message_id ( void )
 {
 	static uint8_t next_id = 0;
