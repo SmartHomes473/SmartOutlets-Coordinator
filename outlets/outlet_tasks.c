@@ -49,7 +49,7 @@ void OUTLET_off ( OutletTask *task )
 	} while (1);
 }
 
-uint32_t OUTLET_get_power ( OutletTask *task )
+void OUTLET_get_power ( OutletTask *task )
 {
 	uint8_t packet[SOPS_HEADER_LEN];
 	uint8_t power[SOPS_POWER_LEN];
