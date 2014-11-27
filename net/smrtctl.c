@@ -25,7 +25,7 @@ typedef enum {
 } SMRTCTL_State;
 
 // FIXME: placeholder value
-#define SMRTCTL_SOP				0x11
+#define SMRTCTL_SOP				0x0F
 #define SMRTCTL_HEADER_LENGTH	0x11
 
 void SMRTCTL_task  ( UArg arg0, UArg arg1 )
