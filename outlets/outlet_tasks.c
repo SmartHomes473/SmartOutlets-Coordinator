@@ -32,14 +32,14 @@ void OUTLET_on ( OutletTask *task )
 void OUTLET_off ( OutletTask *task )
 {
 	uint8_t packet[SOPS_HEADER_LEN];
-	uint8_t ack[SOPS_ACK_LEN];
+	uint8_t ack[SOPS_ACK_LEN+5];
 
 	// make packet
 	SOPS_make_packet(task->target, SOPS_OUTLET_OFF, 0, packet, sizeof(packet));
 
 	do {
 		// turn off outlet
-		RFM12B_tx ( packet, sizeof(packet) );
+		RFM12B_tx(packet, sizeof(packet));
 
 		// re-transmit if we don't receive an ACK
 		RFM12B_rx(ack, sizeof(ack));
@@ -49,3 +49,27 @@ void OUTLET_off ( OutletTask *task )
 	} while (1);
 }
 
+uint32_t OUTLET_get_power ( OutletTask *task )
+{
+	uint8_t packet[SOPS_HEADER_LEN];
+	uint8_t power[SOPS_POWER_LEN];
+
+	// make packet
+	SOPS_make_packet(task->target, SOPS_OUTLET_REQ_POWER, 0, packet, sizeof(packet));
+
+	do {
+		// request power state
+		RFM12B_tx(packet, sizeof(packet));
+
+		// read response
+		RFM12B_rx(power, sizeof(power));
+
+		// re-transmit if we don't receive a valid response
+		if (SOPS_decode(power, sizeof(power)) == POWER) {
+			break;
+		}
+	} while (1);
+
+	// XXX: not sure about the endianess of the response, probably little endian
+	return power[SOPS_HEADER_LEN] + ((uint32_t)power[SOPS_HEADER_LEN+1]<<8) + ((uint32_t)power[SOPS_HEADER_LEN+2]<<16);
+}
