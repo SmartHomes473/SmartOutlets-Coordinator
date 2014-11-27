@@ -110,3 +110,20 @@ void SMRTCTL_task  ( UArg arg0, UArg arg1 )
 		}
 	}
 }
+
+void SMRTCTL_tx_power ( uint32_t power ) {
+	uint8_t packet[9] = { 0x0F, 0x02, 0xA1, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04 };
+
+	// fill packet
+	packet[5] = (uint8_t)power;
+	packet[6] = (uint8_t)(power>>8);
+	packet[7] = (uint8_t)(power>>16);
+
+	// write packet to XBee transmit buffer
+	Semaphore_pend(xbeeTxBuffer_mutex, BIOS_WAIT_FOREVER);
+	Buffer32_write(XBEE_tx_buffer, packet, sizeof(packet));
+	Semaphore_post(xbeeTxBuffer_mutex);
+
+	// notify the handler thread
+	Semaphore_post(xbeeTxTask_sem);
+}

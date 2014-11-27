@@ -8,6 +8,7 @@
 #include "outlets/outlet_tasks.h"
 #include "drivers/rfm12b.h"
 #include "net/sops.h"
+#include "net/smrtctl.h"
 
 void OUTLET_on ( OutletTask *task )
 {
@@ -51,8 +52,9 @@ void OUTLET_off ( OutletTask *task )
 
 void OUTLET_get_power ( OutletTask *task )
 {
+	uint32_t power;
 	uint8_t packet[SOPS_HEADER_LEN];
-	uint8_t power[SOPS_POWER_LEN];
+	uint8_t resp[SOPS_POWER_LEN];
 
 	// make packet
 	SOPS_make_packet(task->target, SOPS_OUTLET_REQ_POWER, 0, packet, sizeof(packet));
@@ -62,14 +64,17 @@ void OUTLET_get_power ( OutletTask *task )
 		RFM12B_tx(packet, sizeof(packet));
 
 		// read response
-		RFM12B_rx(power, sizeof(power));
+		RFM12B_rx(resp, sizeof(resp));
 
 		// re-transmit if we don't receive a valid response
-		if (SOPS_decode(power, sizeof(power)) == POWER) {
+		if (SOPS_decode(resp, sizeof(resp)) == POWER) {
 			break;
 		}
 	} while (1);
 
 	// XXX: not sure about the endianess of the response, probably little endian
-	return power[SOPS_HEADER_LEN] + ((uint32_t)power[SOPS_HEADER_LEN+1]<<8) + ((uint32_t)power[SOPS_HEADER_LEN+2]<<16);
+	power = resp[SOPS_HEADER_LEN] + ((uint32_t)resp[SOPS_HEADER_LEN+1]<<8) + ((uint32_t)resp[SOPS_HEADER_LEN+2]<<16);
+
+	// send power to SMRTControl
+	SMRTCTL_tx_power(power);
 }

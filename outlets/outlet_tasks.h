@@ -26,5 +26,6 @@ struct OutletTask {
 
 void OUTLET_on ( OutletTask *task );
 void OUTLET_off ( OutletTask *task );
+void OUTLET_get_power ( OutletTask *task );
 
 #endif /* OUTLET_TASKS_H_ */
