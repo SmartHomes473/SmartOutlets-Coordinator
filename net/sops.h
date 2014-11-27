@@ -22,11 +22,21 @@ typedef struct {
 
 #define SOPS_HEADER_LEN sizeof(SOPS_header_t)
 #define SOPS_ACK_LEN (SOPS_HEADER_LEN + 1)
+#define SOPS_POWER_LEN (SOPS_HEADER_LEN + 3)
 
 #define SOPS_PROTO_IDENT 0xDCDC
 #define SOPS_PROTO_IDENT0 0xDC
 #define SOPS_PROTO_IDENT1 0xDC
 
+// Header offsets
+#define SOPS_HEADER_ID0				0
+#define SOPS_HEADER_ID1				1
+#define SOPS_HEADER_DEST			2
+#define SOPS_HEADER_SRC				3
+#define SOPS_HEADER_MSGID			4
+#define SOPS_HEADER_OPCODE			5
+#define SOPS_HEADER_PAYLOAD_LEN		6
+#define SOPS_HEADER_CKSUM			7
 
 // SOPS opcodes
 #define SOPS_OUTLET_ON	0xAA
@@ -34,6 +44,7 @@ typedef struct {
 #define SOPS_OUTLET_ACK	0x00
 #define SOPS_OUTLET_REQ_POWER 0x11
 #define SOPS_OUTLET_RES_POWER 0x22
+
 
 // SOPS packet types
 typedef enum {

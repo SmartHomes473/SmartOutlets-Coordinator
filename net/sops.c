@@ -58,11 +58,31 @@ int SOPS_make_packet ( uint8_t dest, uint8_t opcode, uint8_t payload_len, uint8_
 
 PacketType SOPS_decode ( uint8_t *packet, size_t len )
 {
+	uint8_t cksum;
+
+	// verify minimum header length
 	if (len < SOPS_HEADER_LEN) {
 		return INVALID;
 	}
 
-	if (packet[0] != SOPS_PROTO_IDENT0 || packet[1] != SOPS_PROTO_IDENT1) {
+	// verify the packet header identifier
+	if (packet[SOPS_HEADER_ID0] != SOPS_PROTO_IDENT0 || packet[SOPS_HEADER_ID1] != SOPS_PROTO_IDENT1) {
+		return INVALID;
+	}
+
+	// verify the checksum
+	cksum = 0xFF;
+	cksum -= packet[SOPS_HEADER_DEST];
+	cksum -= packet[SOPS_HEADER_SRC];
+	cksum -= packet[SOPS_HEADER_MSGID];
+	cksum -= packet[SOPS_HEADER_OPCODE];
+	cksum -= packet[SOPS_HEADER_PAYLOAD_LEN];
+	if (cksum != packet[SOPS_HEADER_CKSUM]) {
+		return INVALID;
+	}
+
+	// verify the payload length
+	if (packet[SOPS_HEADER_PAYLOAD_LEN] + SOPS_HEADER_LEN > len) {
 		return INVALID;
 	}
 
