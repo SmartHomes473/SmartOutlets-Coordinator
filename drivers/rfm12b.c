@@ -33,11 +33,12 @@ extern Semaphore_Handle rfm12b_sem;
 #define SPI_MISO	BIT7
 #define SPI_MOSI	BIT6
 #define SPI_SCLK	BIT2
-#define SPI_CS		BIT5
+#define SPI_CS		BIT3
 
 // nIRQ pin definition
 // XXX: this will likely change
 #define NIRQ		BIT4
+#define FFS			BIT6
 
 // RFM12B configuration definitions
 #define RF_SYNC_BYTE1	0x2D
@@ -117,8 +118,14 @@ void RFM12B_init ( )
 	P1DIR |= SPI_CS;
 
 	// setup nIRQ to receive interrupts
-	P1SEL1 &= ~NIRQ;
-	P1DIR &= ~NIRQ;
+	P3SEL1 &= ~NIRQ;
+	P3DIR &= ~NIRQ;
+
+	// FFS
+	P3SEL1 &= ~FFS;
+	P3OUT |= FFS;
+	P3DIR |= FFS;
+
 
 	// reset USCI_B0
 	UCB0CTLW0 = UCSWRST;
@@ -162,21 +169,21 @@ void RFM12B_init ( )
 
 
 #define __rfm12b_irq_enable() {\
-	P1IE |= NIRQ;\
+	P3IE |= NIRQ;\
 }
 
 #define __rfm12b_irq_clear() {\
-	P1IFG &= ~NIRQ;\
+	P3IFG &= ~NIRQ;\
 }
 
 #define __rfm12b_irq_init() {\
-	P1DIR &= ~NIRQ;\
-	P1IES |= NIRQ;\
+	P3DIR &= ~NIRQ;\
+	P3IES |= NIRQ;\
 	__rfm12b_irq_clear();\
 }
 
 #define __rfm12b_irq_disable() {\
-	P1IE &= ~NIRQ;\
+	P3IE &= ~NIRQ;\
 }
 
 void RFM12B_tx ( const uint8_t *data, size_t len )
@@ -242,7 +249,7 @@ size_t RFM12B_rx ( uint8_t *buffer, size_t len )
 	// timeout after 10ms
 	// FIXME: this timeout value is bogus, we need to do
 	//        some actual testing to get a reasonable value.
-	timedout = Semaphore_pend(rfm12b_sem, 10);
+	timedout = Semaphore_pend(rfm12b_sem, 100);
 
 	// disable IRQ
 	if (!timedout) {
@@ -264,8 +271,8 @@ size_t RFM12B_rx ( uint8_t *buffer, size_t len )
 
 void RFM12B_ISR ( void )
 {
-	if (!(P1IFG&NIRQ)) {
-		P1IFG = 0;
+	if (!(P3IFG&NIRQ)) {
+		P3IFG = 0;
 		return;
 	}
 
@@ -310,7 +317,7 @@ void RFM12B_ISR ( void )
 		}
 
 		// clear the interrupt if NIRQ is satisfied
-		if (P1IN&NIRQ) {
+		if (P3IN&NIRQ) {
 			__rfm12b_irq_clear();
 		}
 	}

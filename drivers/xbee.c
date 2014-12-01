@@ -50,8 +50,8 @@ Buffer32_t *XBEE_rx_buffer = &__xbee_rx_buffer;
 void XBEE_init ( )
 {
 	// initialize UART on USCI_A1
-	XBEE_SEL0 |= XBEE_RX | XBEE_TX;
-	XBEE_SEL1 &= ~(XBEE_RX | XBEE_TX);
+	XBEE_SEL1 |= XBEE_RX | XBEE_TX;
+	XBEE_SEL0 &= ~(XBEE_RX | XBEE_TX);
 
 	// reset USCI_A1
 	XBEECTLW0 = UCSWRST;
@@ -62,7 +62,7 @@ void XBEE_init ( )
 	// set modulation for 9600 baud
 	XBEEBR0 = 104;
 	XBEEBR1 = 0;
-	XBEEMCTLW |= UCOS16 | UCBRF_2 | 0xD600;
+	XBEEMCTLW |= UCOS16 | UCBRF_2;
 
 	// enable USCI_A1
 	XBEECTLW0 &= ~UCSWRST;
@@ -77,7 +77,7 @@ void XBEE_init ( )
 	Buffer32_init(XBEE_tx_buffer);
 	Semaphore_post(xbeeTxBuffer_mutex);
 
-	// TODO: configure XBEE for 115000 baud
+	// TODO: configure XBEE for 115200 baud
 }
 
 void XBEE_send ( uint8_t *data, size_t len )

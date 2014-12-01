@@ -11,6 +11,7 @@
 // kernel headers
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Queue.h>
 
 // project headers
@@ -26,20 +27,33 @@ extern Queue_Handle outletTask_queue;
 
 void outlet_task_handler ( UArg arg0, UArg arg1 )
 {
+	int foo = 0;
 	while(1) {
 		OutletTask *task;
-		static int foo = 0;
 
-		/// ***** DEBUG
-		__delay_cycles(10000000);
-		OutletTask debug_task;
-		debug_task.action = foo++ % 2 ? OUTLET_on : OUTLET_off;
-		debug_task.target = 0x12;
-		Semaphore_pend(taskQueue_mutex, BIOS_WAIT_FOREVER);
-		Queue_enqueue(outletTask_queue, (Queue_Elem*)&debug_task);
-		Semaphore_post(outletTaskQueue_sem);
-		Semaphore_post(taskQueue_mutex);
-		/// ***** END DEBUG
+//		/// ***** DEBUG
+//		Task_sleep(200);
+//		OutletTask debug_task;
+//		switch (foo) {
+//		case 0:
+//			debug_task.action = OUTLET_off;
+//			foo = 1;
+//			break;
+//		case 1:
+//			debug_task.action = OUTLET_on;
+//			foo = 2;
+//			break;
+//		case 2:
+//			debug_task.action = OUTLET_get_power;
+//			foo = 0;
+//			break;
+//		}
+//		debug_task.target = 0x12;
+//		Semaphore_pend(taskQueue_mutex, BIOS_WAIT_FOREVER);
+//		Queue_enqueue(outletTask_queue, (Queue_Elem*)&debug_task);
+//		Semaphore_post(outletTaskQueue_sem);
+//		Semaphore_post(taskQueue_mutex);
+//		/// ***** END DEBUG
 
 
 		// wait for a task to come in

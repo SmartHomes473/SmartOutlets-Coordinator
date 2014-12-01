@@ -14,10 +14,12 @@ void OUTLET_on ( OutletTask *task )
 {
 	uint8_t packet[SOPS_HEADER_LEN];
 	uint8_t ack[SOPS_ACK_LEN];
+	uint8_t retries;
 
 	// make packet
 	SOPS_make_packet(task->target, SOPS_OUTLET_ON, 0, packet, sizeof(packet));
 
+	retries = 4;
 	do {
 		// turn on outlet
 		RFM12B_tx(packet, sizeof(packet));
@@ -27,17 +29,19 @@ void OUTLET_on ( OutletTask *task )
 		if (SOPS_decode(ack, sizeof(ack)) == ACK) {
 			break;
 		}
-	} while (1);
+	} while (retries--);
 }
 
 void OUTLET_off ( OutletTask *task )
 {
 	uint8_t packet[SOPS_HEADER_LEN];
 	uint8_t ack[SOPS_ACK_LEN+5];
+	uint8_t retries;
 
 	// make packet
 	SOPS_make_packet(task->target, SOPS_OUTLET_OFF, 0, packet, sizeof(packet));
 
+	retries = 4;
 	do {
 		// turn off outlet
 		RFM12B_tx(packet, sizeof(packet));
@@ -47,7 +51,7 @@ void OUTLET_off ( OutletTask *task )
 		if (SOPS_decode(ack, sizeof(ack)) == ACK) {
 			break;
 		}
-	} while (1);
+	} while (retries--);
 }
 
 void OUTLET_get_power ( OutletTask *task )
@@ -55,10 +59,12 @@ void OUTLET_get_power ( OutletTask *task )
 	uint32_t power;
 	uint8_t packet[SOPS_HEADER_LEN];
 	uint8_t resp[SOPS_POWER_LEN];
+	uint8_t retries;
 
 	// make packet
 	SOPS_make_packet(task->target, SOPS_OUTLET_REQ_POWER, 0, packet, sizeof(packet));
 
+	retries = 4;
 	do {
 		// request power state
 		RFM12B_tx(packet, sizeof(packet));
@@ -70,7 +76,7 @@ void OUTLET_get_power ( OutletTask *task )
 		if (SOPS_decode(resp, sizeof(resp)) == POWER) {
 			break;
 		}
-	} while (1);
+	} while (retries--);
 
 	// XXX: not sure about the endianess of the response, probably little endian
 	power = resp[SOPS_HEADER_LEN] + ((uint32_t)resp[SOPS_HEADER_LEN+1]<<8) + ((uint32_t)resp[SOPS_HEADER_LEN+2]<<16);
