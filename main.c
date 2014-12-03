@@ -71,6 +71,7 @@ int main(void) {
 	/* Call driver init function. */
 	RFM12B_init();
 	XBEE_init();
+	RN41_init();
 
 	/* Start BIOS */
 	BIOS_start();
