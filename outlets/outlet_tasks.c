@@ -82,5 +82,5 @@ void OUTLET_get_power ( OutletTask *task )
 	power = resp[SOPS_HEADER_LEN] + ((uint32_t)resp[SOPS_HEADER_LEN+1]<<8) + ((uint32_t)resp[SOPS_HEADER_LEN+2]<<16);
 
 	// send power to SMRTControl
-	SMRTCTL_tx_power(power);
+	SMRTCTL_tx_power(task->target, power);
 }
